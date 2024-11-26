@@ -1,0 +1,47 @@
+# Required Input Files
+input_files:
+  auth_file: "stone-armor-430205-e2-2cd696d4afcd.json"  # Google Cloud authentication file
+  target_list: "static/data/Target_index.csv"  # Target shapefile list
+  shapefile_data: "static/data/Shapefile_data_20240819.csv"  # Shapefile attributes
+
+# Image Source Settings
+image_sources:
+  nicfi:
+    project_path: "projects/planet-nicfi/assets/basemaps/americas"
+    scale_meters: 5
+    bands: ["R", "G", "B"]
+    
+  sentinel:
+    project_path: "COPERNICUS/S2_SR_HARMONIZED"
+    scale_meters: 10
+    bands: ["B4", "B3", "B2"]
+    cloud_cover_max: 20
+
+# Export Parameters
+export_settings:
+  max_concurrent_tasks: 2000
+  task_check_interval: 600  # seconds
+  max_pixels: 1e13
+  crs: "EPSG:4326"
+  
+  # Shape size rules for dynamic export
+  shape_rules:
+    tiny:  # < 1 ha
+      min_export_area: 3  # hectares
+    small:  # 1-4 ha
+      min_export_area: 5  # hectares
+    medium:  # 4-10 ha
+      area_multiplier: 3
+    large:  # >= 10 ha
+      use_actual_bounds: true
+
+# Output Settings
+output_settings:
+  drive_folders:
+    nicfi: "nicfi_exports"
+    sentinel: "sentinel_exports"
+  task_logs: "static/data/monthly_task_log.txt"
+
+
+  
+d
