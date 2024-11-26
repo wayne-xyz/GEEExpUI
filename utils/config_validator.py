@@ -1,91 +1,109 @@
-import yaml
+from typing import Tuple, Dict, Any
 from pathlib import Path
-from typing import Dict, Any
-import os
-from datetime import datetime
+import yaml
 
 class ConfigValidator:
-    def __init__(self, config_path: str):
-        self.config_path = config_path
-        self.config = self._load_config()
-        
-    def _load_config(self) -> Dict[str, Any]:
-        """Load and parse YAML configuration file"""
+    """Validator for YAML configuration files"""
+    
+    @staticmethod
+    def validate_yaml_content(yaml_content: Dict[str, Any]) -> Tuple[bool, str]:
+        """
+        Validate the content of the YAML configuration
+        Args:
+            yaml_content: Dictionary containing YAML configuration
+        Returns:
+            Tuple[bool, str]: (is_valid, error_message)
+        """
         try:
-            with open(self.config_path, 'r') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            raise ValueError(f"Failed to load config file: {e}")
+            # Validate image_sources section
+            if 'image_sources' not in yaml_content:
+                return False, "Missing 'image_sources' section in YAML"
 
-    def validate(self) -> bool:
-        """Run all validation checks"""
-        try:
-            self._validate_google_cloud()
-            self._validate_drive_settings()
-            self._validate_image_sources()
-            self._validate_export_settings()
-            self._validate_paths()
-            return True
-        except ValueError as e:
-            print(f"Configuration validation failed: {e}")
-            return False
-
-    def _validate_google_cloud(self):
-        """Validate Google Cloud settings"""
-        gc = self.config.get('google_cloud', {})
-        
-        # Check service account key file
-        key_file = gc.get('service_account_key_file')
-        if not key_file or not os.path.exists(key_file):
-            raise ValueError("Invalid or missing service account key file")
-
-        # Check required fields
-        required = ['project_id', 'shared_assets_id']
-        for field in required:
-            if not gc.get(field):
-                raise ValueError(f"Missing required Google Cloud setting: {field}")
-
-    def _validate_drive_settings(self):
-        """Validate Google Drive settings"""
-        drive = self.config.get('drive_settings', {})
-        folders = drive.get('folders', {})
-        
-        if not all([folders.get('nicfi'), folders.get('sentinel')]):
-            raise ValueError("Missing required Drive folder settings")
-
-    def _validate_image_sources(self):
-        """Validate image source settings"""
-        sources = self.config.get('image_sources', {})
-        
-        for source in ['nicfi', 'sentinel']:
-            if source not in sources:
-                raise ValueError(f"Missing {source} configuration")
+            image_sources = yaml_content['image_sources']
             
-            source_config = sources[source]
-            required = ['project_path', 'scale_meters', 'bands']
-            for field in required:
-                if field not in source_config:
-                    raise ValueError(f"Missing {field} in {source} configuration")
+            # Validate NICFI configuration
+            if not ConfigValidator._validate_source_config(image_sources, 'nicfi'):
+                return False, "Invalid NICFI configuration"
+                
+            # Validate Sentinel configuration
+            if not ConfigValidator._validate_source_config(image_sources, 'sentinel'):
+                return False, "Invalid Sentinel configuration"
 
-    def _validate_export_settings(self):
-        """Validate export settings"""
-        export = self.config.get('export_settings', {})
-        required = ['max_concurrent_tasks', 'task_check_interval', 'max_pixels', 'crs']
+            # Validate Shared Assets ID
+            if 'Shared_Assets_ID' not in yaml_content:
+                return False, "Missing 'Shared_Assets_ID' in YAML"
+            if not isinstance(yaml_content['Shared_Assets_ID'], str):
+                return False, "Invalid type for 'Shared_Assets_ID', expected string"
+            if not yaml_content['Shared_Assets_ID'].startswith('projects/'):
+                return False, "'Shared_Assets_ID' must start with 'projects/'"
+
+            return True, "Configuration is valid"
+
+        except Exception as e:
+            return False, f"Validation error: {str(e)}"
+
+    @staticmethod
+    def _validate_source_config(image_sources: Dict[str, Any], source_type: str) -> bool:
+        """
+        Validate configuration for a specific image source
+        Args:
+            image_sources: Dictionary containing image source configurations
+            source_type: Type of image source ('nicfi' or 'sentinel')
+        Returns:
+            bool: True if configuration is valid
+        """
+        if source_type not in image_sources:
+            return False
+            
+        source_config = image_sources[source_type]
+        required_fields = {
+            'source_name': str,
+            'project_path': str,
+            'scale_meters': int
+        }
         
-        for field in required:
-            if field not in export:
-                raise ValueError(f"Missing export setting: {field}")
+        for field, field_type in required_fields.items():
+            if field not in source_config:
+                return False
+            if not isinstance(source_config[field], field_type):
+                return False
+                
+        return True
 
-    def _validate_paths(self):
-        """Validate file paths"""
-        paths = self.config.get('paths', {})
-        
-        for path_name, path_value in paths.items():
-            if path_name in ['shapefile_data', 'target_index']:
-                if not os.path.exists(path_value):
-                    raise ValueError(f"Required file not found: {path_value}")
+    @staticmethod
+    def validate_yaml_file(file_path: str) -> Tuple[bool, str, Dict[str, Any]]:
+        """
+        Validate a YAML configuration file
+        Args:
+            file_path: Path to YAML file
+        Returns:
+            Tuple[bool, str, Dict]: (is_valid, error_message, yaml_content)
+        """
+        try:
+            # Check file exists
+            if not Path(file_path).exists():
+                return False, f"File not found: {file_path}", None
 
-def validate_config(config_path: str) -> bool:
-    """Utility function to validate configuration file"""
-    validator = ConfigValidator(config_path)
-    return validator.validate() 
+            # Load YAML content
+            with open(file_path, 'r') as f:
+                yaml_content = yaml.safe_load(f)
+
+            # Validate content
+            is_valid, message = ConfigValidator.validate_yaml_content(yaml_content)
+            return is_valid, message, yaml_content if is_valid else None
+
+        except yaml.YAMLError as e:
+            return False, f"Invalid YAML format: {str(e)}", None
+        except Exception as e:
+            return False, f"Validation error: {str(e)}", None
+
+def validate_config(config_path: str) -> Tuple[bool, str, Dict[str, Any]]:
+    """
+    Utility function to validate configuration file
+    Args:
+        config_path: Path to configuration file
+    Returns:
+        Tuple[bool, str, Dict]: (is_valid, error_message, yaml_content)
+    """
+    validator = ConfigValidator()
+    return validator.validate_yaml_file(config_path) 
