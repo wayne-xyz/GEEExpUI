@@ -82,7 +82,7 @@ class Application:
 
     def setup_gui(self):
         self.root.title("GEE Export UI")
-        self.root.geometry("1280x720")
+        self.root.geometry("1440x800")
 
         # Create main frame
         main_frame = ttk.Frame(self.root, padding="10")
@@ -112,6 +112,7 @@ class Application:
         self.status_bar.grid(row=1, column=0, sticky=(tk.W, tk.E))
         self.status_var.set("Ready")
 
+    # Update the status bar
     def update_status(self, message):
         self.status_var.set(message)
         self.root.update()
@@ -429,7 +430,7 @@ class Application:
                 
                 # Update progress
                 self.update_progress()
-                self.show_info("Success", "Configuration loaded successfully")
+                self.update_status("Configuration loaded successfully")
                 
             except Exception as e:
                 self.show_error("Configuration Error", str(e))
@@ -439,6 +440,7 @@ class Application:
 
     def update_shared_asset_info(self):
         """Update shared asset information display"""
+        self.update_status("Updating shared asset information...")
         try:
             if not self.file_manager.input_files or not self.file_manager.input_files.auth_file:
                 return
@@ -460,6 +462,8 @@ class Application:
             
             self.shared_asset_text.insert(tk.END, info_text)
             self.shared_asset_text.config(state='disabled')
+            
+            self.update_status("Shared asset information updated successfully")
             
         except Exception as e:
             self.show_error("Error", f"Failed to update shared asset information: {str(e)}")
