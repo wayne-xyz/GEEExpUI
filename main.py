@@ -82,7 +82,7 @@ class Application:
 
     def setup_gui(self):
         self.root.title("GEE Export UI")
-        self.root.geometry("1440x800")
+        self.root.geometry("2048x1152")
 
         # Create main frame
         main_frame = ttk.Frame(self.root, padding="10")
@@ -94,11 +94,11 @@ class Application:
         # Next Step Button
         self.next_button = ttk.Button(
             main_frame, 
-            text="Continue to Export Settings →",
+            text="Start Export →",
             command=self.proceed_to_next_step,
             state='disabled'
         )
-        self.next_button.grid(row=4, column=0, columnspan=3, pady=20)
+        self.next_button.grid(row=7, column=0, columnspan=3, pady=20)
 
         # Add status bar at the bottom
         self.status_var = tk.StringVar()
@@ -238,6 +238,23 @@ class Application:
             state='disabled'
         )
         self.shared_asset_text.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=5, pady=5)
+
+        # Add Target Comparison Results Frame
+        target_comparison_frame = ttk.LabelFrame(parent, text="Target Comparison Results", padding="10")
+        target_comparison_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
+        
+        # Configure target comparison frame
+        target_comparison_frame.columnconfigure(0, weight=1)
+        
+        # Create text widget for comparison results
+        self.target_comparison_text = tk.Text(
+            target_comparison_frame,
+            wrap=tk.WORD,
+            height=4,
+            width=50,
+            state='disabled'
+        )
+        self.target_comparison_text.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=5, pady=5)
 
 
 
@@ -489,29 +506,135 @@ class Application:
             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
         )
         if target_path:
-            if self.file_manager.load_target_list(target_path):
-                self.target_filename.config(text=Path(target_path).name)
-                self.files_loaded['target'] = True
-                self.update_progress()
-                self.show_info("Success", "Target list loaded successfully")
-            else:
-                self.show_error("Error", "Failed to load target list")
+            try:
+                # Update status
+                self.update_status("Loading target list...")
+                
+                if self.file_manager.load_target_list(target_path):
+                    self.target_filename.config(text=Path(target_path).name)
+                    self.files_loaded['target'] = True
+                    self.update_progress()
+                    
+                    # Get shared asset ID from config
+                    shared_asset_id = self.config.get_shared_assets_id()
+                    if not shared_asset_id:
+                        raise ValueError("No shared asset ID found in config")
+                    
+                    # Update status
+                    self.update_status("Comparing target list with shared asset...")
+                    
+                    # Get auth file path
+                    auth_file_path = str(self.file_manager.input_files.auth_file)
+                    
+                    # Show loading message in comparison text
+                    self.target_comparison_text.config(state='normal')
+                    self.target_comparison_text.delete(1.0, tk.END)
+                    self.target_comparison_text.insert(tk.END, "Comparing target list with shared asset...")
+                    self.target_comparison_text.config(state='disabled')
+                    
+                    # Compare target with shared asset
+                    from utils.gee_helper import compare_target_asset
+                    comparison_result = compare_target_asset(
+                        auth_file_path,
+                        target_path,
+                        shared_asset_id
+                    )
+                    
+                    # Update comparison results
+                    self.target_comparison_text.config(state='normal')
+                    self.target_comparison_text.delete(1.0, tk.END)
+                    self.target_comparison_text.insert(tk.END, comparison_result)
+                    self.target_comparison_text.config(state='disabled')
+                    
+                    self.update_status("Target list loaded and compared successfully")
+                    
+                else:
+                    raise ValueError("Failed to load target list")
+                    
+            except Exception as e:
+                self.show_error("Error", str(e))
+                self.target_filename.config(text="No file selected")
+                self.files_loaded['target'] = False
+                
+                # Clear comparison results
+                self.target_comparison_text.config(state='normal')
+                self.target_comparison_text.delete(1.0, tk.END)
+                self.target_comparison_text.insert(tk.END, "Failed to compare target list")
+                self.target_comparison_text.config(state='disabled')
+
+
+
+    def check_export_conditions(self):
+        """
+        Check if all conditions are satisfied to start the export
+        Returns:
+            bool: True if all conditions are met, False otherwise
+        """
+        try:
+            # 1. Check if a folder is selected
+            folder_selection = self.folders_listbox.curselection()
+            if not folder_selection:
+                self.show_error("Export Error", "Please select a destination folder from the available folders list")
+                return False
+
+            # 2. Check if a source is selected
+            source_selection = self.sources_listbox.curselection()
+            if not source_selection:
+                self.show_error("Export Error", "Please select an image source from the available sources list")
+                return False
+
+            # 3. Check target comparison results
+            comparison_text = self.target_comparison_text.get(1.0, tk.END).strip()
+            if not comparison_text:
+                self.show_error("Export Error", "No target comparison results available")
+                return False
+
+            # Parse the comparison results to get the match count
+            try:
+                # Extract the number of matches from the comparison text
+                # Expected format: "Number of target values found in shared asset: X"
+                for line in comparison_text.split('\n'):
+                    if "found in shared asset:" in line:
+                        match_count = int(line.split(':')[1].strip())
+                        if match_count <= 0:
+                            self.show_error("Export Error", 
+                                "No matching features found between target list and shared asset")
+                            return False
+                        break
+            except (ValueError, IndexError):
+                self.show_error("Export Error", 
+                    "Unable to determine the number of matching features")
+                return False
+
+            # All conditions are satisfied
+            return True
+
+        except Exception as e:
+            self.show_error("Export Error", f"Error checking export conditions: {str(e)}")
+            return False
+
+
+
+
+
+
+
+
+
+
+
+    
 
     def proceed_to_next_step(self):
         # Check if folders are selected
-        selected_folders = self.get_selected_folders()
-        if not selected_folders:
-            self.show_warning("Warning", "Please select at least one folder")
-            return
-            
-        # Store selected folders in file_manager for later use
-        self.file_manager.selected_folders = selected_folders
-        
-        self.show_info("Next Step", f"Selected folders: {', '.join(selected_folders)}\nProceeding to export settings...")
-        # TODO: Implement transition to export settings screen
+        # get all the parameters from the UI and store them in the config instance
+        pass
+
 
     def run(self):
         self.root.mainloop()
+
+
 
 
 
