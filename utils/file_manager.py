@@ -7,46 +7,37 @@ from dataclasses import dataclass
 
 @dataclass
 class InputFiles:
-    config_path: Path
-    auth_file: Path
-    target_list: Path
-    shapefile_data: Path
+    auth_file: Path = None
+    config_file: Path = None
+    target_file: Path = None
 
 class FileManager:
     def __init__(self):
-        self.config: Dict = {}
-        self.target_list: Optional[pd.DataFrame] = None
-        self.shapefile_data: Optional[pd.DataFrame] = None
-        self.auth_credentials: Dict = {}
-        self.input_files: Optional[InputFiles] = None
+        self.input_files = InputFiles()
+        self.selected_folders = []
 
-    def load_config(self, config_path: str) -> bool:
-        """Load YAML configuration file"""
+    def load_auth_file(self, file_path):
         try:
-            with open(config_path, 'r') as f:
-                self.config = yaml.safe_load(f)
+            self.input_files.auth_file = Path(file_path)
+            return True
+        except Exception as e:
+            print(f"Error loading auth file: {e}")
+            return False
+
+    def load_config(self, file_path):
+        try:
+            self.input_files.config_file = Path(file_path)
             return True
         except Exception as e:
             print(f"Error loading config file: {e}")
             return False
 
-    def load_auth_file(self, auth_path: str) -> bool:
-        """Load Google Cloud authentication JSON file"""
+    def load_target_list(self, file_path):
         try:
-            with open(auth_path, 'r') as f:
-                self.auth_credentials = json.load(f)
+            self.input_files.target_file = Path(file_path)
             return True
         except Exception as e:
-            print(f"Error loading authentication file: {e}")
-            return False
-
-    def load_target_list(self, target_path: str) -> bool:
-        """Load target shapefile list CSV"""
-        try:
-            self.target_list = pd.read_csv(target_path)
-            return True
-        except Exception as e:
-            print(f"Error loading target list: {e}")
+            print(f"Error loading target file: {e}")
             return False
 
     def load_shapefile_data(self, shapefile_path: str) -> bool:
