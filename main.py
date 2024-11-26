@@ -4,6 +4,17 @@ from utils.config_validator import validate_config
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+
+
+# Define some hardcoded values for the config setting 
+MAX_CONCURRENT_TASKS = 2000
+TASK_CHECK_INTERVAL = 600
+
+
+
+
+
+
 class CopyableMessageDialog:
     def __init__(self, parent, title, message, error=False):
         self.dialog = tk.Toplevel(parent)
@@ -135,29 +146,29 @@ class Application:
         self.target_filename = ttk.Label(file_frame, text="No file selected")
         self.target_filename.grid(row=2, column=2, sticky=(tk.W, tk.E), padx=5)
 
-        # Add Folders Selection Frame - now expandable
+        # Add Folders Selection Frame
         folders_frame = ttk.LabelFrame(parent, text="Available Folders", padding="10")
-        folders_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=10)
+        folders_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
         
         # Configure folders frame for expansion
         folders_frame.grid_columnconfigure(0, weight=1)
         folders_frame.grid_rowconfigure(0, weight=1)
         
-        # Create listbox for folders with scrollbar - now with single selection
+        # Create listbox for Drive folders with scrollbar
         self.folders_listbox = tk.Listbox(
             folders_frame, 
-            selectmode=tk.SINGLE,  # Changed from MULTIPLE to SINGLE
-            height=10,
+            selectmode=tk.SINGLE,
+            height=10,  # Increased height since we removed assets listbox
             width=50
         )
         self.folders_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=5, pady=5)
         
-        # Add scrollbar
-        scrollbar = ttk.Scrollbar(folders_frame, orient=tk.VERTICAL, command=self.folders_listbox.yview)
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
-        self.folders_listbox.configure(yscrollcommand=scrollbar.set)
-        
-        # Initially disable the listbox
+        # Add scrollbar for folders
+        folders_scrollbar = ttk.Scrollbar(folders_frame, orient=tk.VERTICAL, command=self.folders_listbox.yview)
+        folders_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        self.folders_listbox.configure(yscrollcommand=folders_scrollbar.set)
+
+        # Initially disable listbox
         self.folders_listbox.config(state='disabled')
 
     def update_progress(self):
@@ -224,46 +235,42 @@ class Application:
             # Clear existing items
             self.folders_listbox.delete(0, tk.END)
             
-            # Enable the listbox
+            # Enable listbox
             self.folders_listbox.config(state='normal')
             
-            # Get available folders from auth_validator
             if not self.file_manager.input_files or not self.file_manager.input_files.auth_file:
                 raise ValueError("Auth file not loaded in file manager")
                 
             # Update status
-            self.update_status("Retrieving folders from Google Drive...")
+            self.update_status("Retrieving folders...")
             
-            # Get available folders using the auth file path from file manager
+            # Get available folders from Google Drive
             from utils.auth_validator import return_all_folders_with_id
             auth_file_path = str(self.file_manager.input_files.auth_file)
+            
+            # Load Drive folders
             self.available_folders = return_all_folders_with_id(auth_file_path)
-            
-            if not self.available_folders:
-                self.update_status("Warning: No folders found in Google Drive")
-                self.show_warning("Warning", "No folders found in Google Drive")
-                return
-            
-            # Add folders to listbox
             for folder in self.available_folders:
                 self.folders_listbox.insert(tk.END, folder)
+            
+            # Check folders
+            if not self.available_folders:
+                self.update_status("Warning: No Drive folders found")
+                self.show_warning("Warning", "No Google Drive folders found")
+            else:
+                self.update_status("Folders loaded successfully")
                 
-            self.update_status("Folders loaded successfully")
-                
-        except ValueError as e:
-            self.update_status(f"Error: {str(e)}")
-            self.show_error("Error", str(e))
-            self.folders_listbox.config(state='disabled')
         except Exception as e:
-            self.update_status(f"Error: Failed to load Google Drive folders")
-            self.show_error("Error", f"Failed to load Google Drive folders: {str(e)}")
+            self.update_status(f"Error: Failed to load folders")
+            self.show_error("Error", f"Failed to load folders: {str(e)}")
             self.folders_listbox.config(state='disabled')
 
     def get_selected_folders(self):
-        # Get selected folder index
-        selection = self.folders_listbox.curselection()
-        if selection:  # Will be a tuple with single item
-            return [self.available_folders[selection[0]]]
+        # Get selected folder
+        folder_selection = self.folders_listbox.curselection()
+        
+        if folder_selection:
+            return [self.available_folders[folder_selection[0]]]
         return []
 
     def load_config(self):

@@ -1,6 +1,18 @@
 #this is the script to validate the google cloud authentication file
 
 import os
+from google.oauth2 import service_account
+import ee
+
+SCOPES = ['https://www.googleapis.com/auth/drive.readonly', 'https://www.googleapis.com/auth/earthengine']
+
+
+def get_credentials(file_path):
+    """Get credentials from service account key file"""
+    return service_account.Credentials.from_service_account_file(file_path, scopes=SCOPES)
+
+
+    pass
 
 def validate_auth_file(file_path):
     if not os.path.exists(file_path):
@@ -79,4 +91,48 @@ def return_all_folders_with_id(file_path):
     except Exception as e:
         print(f"Failed to get Drive folders: {str(e)}")
         return []
+    
+
+def initialize_ee(file_path):
+    """Initialize Earth Engine with service account credentials"""
+    try:
+        # Get the general credentials
+        credentials = get_credentials(file_path)
+        
+        # Create EE-specific credentials
+        ee_credentials = ee.ServiceAccountCredentials(
+            credentials.service_account_email,
+            file_path
+        )
+        
+        # Initialize EE with project ID
+        ee.Initialize(ee_credentials, project='stone-armor-430205-e2')
+        
+        # Test EE connection
+        ee.Number(1).getInfo()
+        print("Earth Engine initialized successfully")
+        return True
+        
+    except Exception as e:
+        print(f"Failed to initialize EE: {str(e)}")
+        return False
+
+
+
+
+
+def check_assets_exist():
+    json_file_path = "stone-armor-430205-e2-2cd696d4afcd.json"
+    SHARED_ASSETS_ID = "projects/ee-qinheyi/assets/1823_ADRSM"
+    """Check if an asset exists in the user's GEE account"""
+    initialize_ee(json_file_path)
+    shape_file_table=ee.FeatureCollection(SHARED_ASSETS_ID)
+    
+    print(f"The shapefile table has {shape_file_table.size().getInfo()} features")
+
+
+
+if __name__ == "__main__":
+    check_assets_exist()
+    pass
 

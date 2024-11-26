@@ -18,7 +18,7 @@ A user-friendly desktop application for exporting high-resolution TIFF files fro
 
 ## Requirements
 
-- Python 3.7+
+- Python 3.11
 - Google Earth Engine account
 - Google Cloud project with necessary APIs enabled
 - Required Python packages (see requirements.txt)
