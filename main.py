@@ -157,7 +157,8 @@ class Application:
             folders_frame, 
             selectmode=tk.SINGLE,
             height=10,  # Increased height since we removed assets listbox
-            width=50
+            width=50,
+            exportselection=0
         )
         self.folders_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=5, pady=5)
         
@@ -185,7 +186,8 @@ class Application:
             source_info_frame,
             selectmode=tk.SINGLE,
             height=3,
-            width=30
+            width=30,
+            exportselection=0
         )
         self.sources_listbox.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=5, pady=5)
         
