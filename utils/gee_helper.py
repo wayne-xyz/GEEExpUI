@@ -2,6 +2,11 @@ import ee
 from utils.auth_validator import get_credentials
 import pandas as pd
 
+
+def return_credentials(file_path):
+    return get_credentials(file_path)
+
+
 def initialize_ee(file_path):
     """Initialize Earth Engine with service account credentials"""
     try:
@@ -80,12 +85,6 @@ def compare_target_asset(credentials_file_path, target_csv, shared_asset_id):
 
 
 
-
-
-
-
-
-    pass
 
 
 

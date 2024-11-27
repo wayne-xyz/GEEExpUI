@@ -12,7 +12,6 @@ def get_credentials(file_path):
     return service_account.Credentials.from_service_account_file(file_path, scopes=SCOPES)
 
 
-    pass
 
 def validate_auth_file(file_path):
     if not os.path.exists(file_path):

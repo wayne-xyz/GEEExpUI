@@ -9,10 +9,6 @@ import tkcalendar
 
 
 
-# Define some hardcoded values for the config setting 
-MAX_CONCURRENT_TASKS = 2000
-TASK_CHECK_INTERVAL = 600
-
 
 
 
