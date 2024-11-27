@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from utils.config import config, Config
 from utils.gee_helper import return_assets_size
+import tkcalendar
 
 
 
@@ -91,14 +92,7 @@ class Application:
         # File Loading Section
         self.setup_file_loading_section(main_frame)
         
-        # Next Step Button
-        self.next_button = ttk.Button(
-            main_frame, 
-            text="Start Export →",
-            command=self.proceed_to_next_step,
-            state='disabled'
-        )
-        self.next_button.grid(row=7, column=0, columnspan=3, pady=20)
+
 
         # Add status bar at the bottom
         self.status_var = tk.StringVar()
@@ -256,7 +250,61 @@ class Application:
         )
         self.target_comparison_text.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=5, pady=5)
 
+        # Add Time Selection Frame
+        time_frame = ttk.LabelFrame(parent, text="Export Date Range", padding="10")
+        time_frame.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
+        
+        # Start Date Row
+        ttk.Label(time_frame, text="Start Date:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        self.start_date = ttk.Entry(time_frame, width=12)
+        self.start_date.grid(row=0, column=1, padx=5, pady=5)
+        ttk.Button(time_frame, text="Select Date", command=lambda: self.pick_date(self.start_date)).grid(
+            row=0, column=2, padx=5, pady=5
+        )
+        
+        # End Date Row
+        ttk.Label(time_frame, text="End Date:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        self.end_date = ttk.Entry(time_frame, width=12)
+        self.end_date.grid(row=1, column=1, padx=5, pady=5)
+        ttk.Button(time_frame, text="Select Date", command=lambda: self.pick_date(self.end_date)).grid(
+            row=1, column=2, padx=5, pady=5
+        )
 
+        # Start Export Button (moved to row 6)
+        self.next_button = ttk.Button(
+            parent, 
+            text="Start to Export",
+            command=self.proceed_to_next_step,
+            state='disabled'
+        )
+        self.next_button.grid(row=6, column=0, columnspan=3, pady=20, sticky=(tk.E, tk.W))
+
+    def pick_date(self, entry_widget):
+        """Show date picker and update entry"""
+        def set_date():
+            date = cal.selection_get()
+            entry_widget.delete(0, tk.END)
+            entry_widget.insert(0, date.strftime('%Y-%m-%d'))
+            top.destroy()
+
+        top = tk.Toplevel(self.root)
+        top.title("Select Date")
+        
+        # Make dialog modal
+        top.transient(self.root)
+        top.grab_set()
+        
+        # Add calendar
+        cal = tkcalendar.Calendar(top,
+                                 selectmode='day',
+                                 date_pattern='y-mm-dd')
+        cal.pack(padx=10, pady=10)
+        
+        # Add OK button
+        ttk.Button(top, text="OK", command=set_date).pack(pady=5)
+        
+        # Center the dialog
+        self.center_dialog(top)
 
     def update_source_list(self):
         """Update the source list from YAML configuration"""
@@ -547,6 +595,9 @@ class Application:
                     self.target_comparison_text.config(state='disabled')
                     
                     self.update_status("Target list loaded and compared successfully")
+
+                    self.files_loaded['target'] = True
+                    self.update_progress()
                     
                 else:
                     raise ValueError("Failed to load target list")
@@ -606,7 +657,44 @@ class Application:
                     "Unable to determine the number of matching features")
                 return False
 
+            # 4. Check date selections
+            start_date_str = self.start_date.get().strip()
+            end_date_str = self.end_date.get().strip()
+
+            # Check if dates are provided
+            if not start_date_str or not end_date_str:
+                self.show_error("Export Error", "Please select both start and end dates")
+                return False
+
+            try:
+                from datetime import datetime
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+
+                # Check if dates are first day of month
+                if start_date.day != 1:
+                    self.show_error("Export Error", 
+                        "Start date must be the first day of the month")
+                    return False
+
+                if end_date.day != 1:
+                    self.show_error("Export Error", 
+                        "End date must be the first day of the month")
+                    return False
+
+                # Check if end date is after start date
+                if end_date <= start_date:
+                    self.show_error("Export Error", 
+                        "End date must be after start date")
+                    return False
+
+            except ValueError:
+                self.show_error("Export Error", 
+                    "Invalid date format. Please use YYYY-MM-DD format")
+                return False
+
             # All conditions are satisfied
+            print("All conditions are satisfied")
             return True
 
         except Exception as e:
@@ -628,11 +716,34 @@ class Application:
     def proceed_to_next_step(self):
         # Check if folders are selected
         # get all the parameters from the UI and store them in the config instance
-        pass
+        if self.check_export_conditions():
+            self.update_status("All conditions are satisfied")
+            pass
+        else:
+            self.update_status("Conditions not satisfied")
 
 
     def run(self):
         self.root.mainloop()
+
+    def center_dialog(self, dialog):
+        """Center the dialog window on the parent"""
+        dialog.update_idletasks()
+        
+        # Get the window sizes and positions
+        dw = dialog.winfo_reqwidth()
+        dh = dialog.winfo_reqheight()
+        pw = self.root.winfo_width()
+        ph = self.root.winfo_height()
+        px = self.root.winfo_rootx()
+        py = self.root.winfo_rooty()
+        
+        # Calculate center position
+        x = px + (pw - dw) // 2
+        y = py + (ph - dh) // 2
+        
+        # Set the dialog position
+        dialog.geometry(f"+{x}+{y}")
 
 
 
