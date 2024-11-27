@@ -799,7 +799,8 @@ class Application:
                     target_indices=target_indices,
                     start_date=start_date,
                     end_date=end_date,
-                    source_type=source_type
+                    source_type=source_type,
+                    log_callback=self.update_log
                 )
 
                 # Initialize Earth Engine
@@ -814,7 +815,7 @@ class Application:
                             start_date=start_date,
                             end_date=end_date,
                             source_type=source_type,
-                            folder_name=folder_name
+                            folder_name=folder_name,
                         )
                         self.update_status("Export completed successfully")
                         self.update_log("Export process has been completed successfully!")

@@ -15,7 +15,7 @@ from utils.auth_validator import get_credentials
 class TifDownloader:
     """Main class for downloading TIF files from Google Earth Engine"""
     
-    def __init__(self, config, auth_file, target_indices, start_date, end_date, source_type):
+    def __init__(self, config, auth_file, target_indices, start_date, end_date, source_type,log_callback=None):
         """
         Initialize TIF downloader
         Args:
@@ -35,7 +35,7 @@ class TifDownloader:
         self.start_date = start_date
         self.end_date = end_date
         self.source_type = source_type
-        
+        self.log_callback = log_callback
         # Validate inputs
         if not self.auth_file.exists():
             raise FileNotFoundError(f"Auth file not found: {self.auth_file}")
@@ -43,6 +43,14 @@ class TifDownloader:
             raise ValueError("No target indices provided")
         
         self.all_task_count = self.calculate_total_tasks()
+
+
+    def log_message(self, message):
+        """Log a message to the console"""
+        print(message)
+        if self.log_callback:
+            self.log_callback(message)
+       
 
 
     def calculate_total_tasks(self):
@@ -158,13 +166,13 @@ class TifDownloader:
             # Start the task
             # task.start()
             self.current_task_index += 1
-            print(f"Task {task.id} submitted")
+
 
 
             self.task_count += 1
             self.pending_tasks.append(task)
 
-            print(f"Task submitted - Total: {self.all_task_count}, Current: {self.current_task_index}, Index: {index}, Date: {start_date} to {end_date}, Source: {source_type}, Folder: {folder_name}, ID: {task.id}")
+            self.log_message(f"Task submitted - Total: {self.all_task_count}, Current: {self.current_task_index}, Index: {index}, Date: {start_date} to {end_date}, Source: {source_type}, Folder: {folder_name}, ID: {task.id}")
 
         except Exception as e:
             print(f"Error creating task for index {index}: {str(e)}")
@@ -184,7 +192,7 @@ class TifDownloader:
     def monitor_tasks(self):
         """Monitor GEE tasks and wait until task list is clear"""
         while not self.is_ee_task_list_clear():
-            print(f"\nWaiting {self.TASK_CHECK_INTERVAL/60:.1f} minutes before checking GEE task status...")
+            self.log_message(f"\nWaiting {self.TASK_CHECK_INTERVAL/60:.1f} minutes before checking GEE task status...")
             time.sleep(self.TASK_CHECK_INTERVAL)
             
             try:
@@ -248,7 +256,7 @@ Starting Export Process:
                 print("Waiting for final tasks to complete...")
                 self.monitor_tasks()
 
-            print(f"""
+            self.log_message(f"""
 Export Process Summary:
 - Total Batches: {batch_count}
 - Total Date Ranges: {len(date_ranges)}
@@ -257,7 +265,7 @@ Export Process Summary:
             """)
 
         except Exception as e:
-            print(f"Error during export process: {str(e)}")
+            self.log_message(f"Error during export process: {str(e)}")
             raise
 
 

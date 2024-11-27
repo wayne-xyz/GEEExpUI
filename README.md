@@ -25,5 +25,21 @@ A user-friendly desktop application for exporting high-resolution TIFF files fro
 
 ## Installation
 
-1. Clone the repository:
+1. Setup Google Cloud Project and GEE Account 
+   - Create a new project in Google Cloud 
+   - Enable the Earth Engine API
+   - Create a new service account and download the JSON key file (Step 1, Google Cloud Authentication file)
+   - Setup GEE Account and upload a shapefile as shared asset 
+   - Get the Asset ID of the shapefile and the Project ID of the Image collection (Step 2, Google Earth Engine Asset ID and Project ID as Yaml file)
+   - Setup a index file of the target indices based on the Shapefile (Step 3, Target Indices as csv file)
+
+2. Setup the Python Environment
+   - Install the required Python packages
+   - Prepare the 3 files, json, yaml, csv.
+
+3. Make sure the Drive Folder have enought space to save the exported files.
+
+4. Run the main.py
+
+
 
