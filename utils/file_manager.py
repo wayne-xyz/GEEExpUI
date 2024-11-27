@@ -71,8 +71,13 @@ class FileManager:
 
     def get_target_indices(self) -> List[int]:
         """Get list of target indices from target list"""
-        if self.target_list is not None:
-            return self.target_list['Index'].tolist()
+        if self.input_files.target_file is not None:
+            # Read the CSV file from the Path object
+            target_csv_df = pd.read_csv(self.input_files.target_file)
+            # Assuming the first column contains the indices
+            target_field = target_csv_df.columns[0]
+            # Convert the column to a list
+            return target_csv_df[target_field].tolist()
         return []
 
     def get_shape_attributes(self, index: int) -> Dict:

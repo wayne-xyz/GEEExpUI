@@ -6,6 +6,7 @@ from tkinter import ttk, filedialog, messagebox
 from utils.config import config, Config
 from utils.gee_helper import return_assets_size
 import tkcalendar
+from datetime import datetime
 
 
 
@@ -81,14 +82,43 @@ class Application:
         self.root.title("GEE Export UI")
         self.root.geometry("2048x1152")
 
-        # Create main frame
+        # Create main frame with two columns
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        # File Loading Section
-        self.setup_file_loading_section(main_frame)
         
+        # Configure columns to split the window
+        main_frame.columnconfigure(0, weight=2)  # Left side (existing UI)
+        main_frame.columnconfigure(1, weight=1)  # Right side (log frame)
 
+        # Left Frame for existing UI
+        left_frame = ttk.Frame(main_frame)
+        left_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Setup existing UI elements in left frame
+        self.setup_file_loading_section(left_frame)
+
+        # Right Frame for logs - made larger
+        log_frame = ttk.LabelFrame(main_frame, text="Export Progress Log", padding="20")
+        log_frame.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(20, 0), pady=20, ipadx=20, ipady=20)
+        
+        # Configure log frame
+        log_frame.columnconfigure(0, weight=1)
+        log_frame.rowconfigure(0, weight=1)
+        
+        # Add text widget for logs
+        self.log_text = tk.Text(
+            log_frame,
+            wrap=tk.WORD,
+            height=40,
+            width=100,  # Doubled from 50 to 100
+            state='disabled'
+        )
+        self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Add scrollbar for log text
+        log_scrollbar = ttk.Scrollbar(log_frame, orient=tk.VERTICAL, command=self.log_text.yview)
+        log_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        self.log_text.configure(yscrollcommand=log_scrollbar.set)
 
         # Add status bar at the bottom
         self.status_var = tk.StringVar()
@@ -712,14 +742,106 @@ class Application:
     
 
     def proceed_to_next_step(self):
-        # Check if folders are selected
-        # get all the parameters from the UI and store them in the config instance
         if self.check_export_conditions():
-            self.update_status("All conditions are satisfied")
-            pass
-        else:
-            self.update_status("Conditions not satisfied")
+            try:
+                # Get selected source type
+                source_selection = self.sources_listbox.curselection()
+                source_name = self.sources_listbox.get(source_selection[0])
+                
+                # Find source type from config based on source name
+                source_type = None
+                for s_type, s_info in self.config.get_image_sources().items():
+                    if s_info.get('source_name') == source_name:
+                        source_type = s_type
+                        break
+                
+                if not source_type:
+                    raise ValueError("Could not determine source type")
 
+                # Get selected folder
+                folder_selection = self.folders_listbox.curselection()
+                folder_name = self.folders_listbox.get(folder_selection[0])
+
+                # Get date range
+                start_date = self.start_date.get().strip()
+                end_date = self.end_date.get().strip()
+
+                # Load and parse target indices from CSV file
+
+
+
+                target_indices = self.file_manager.get_target_indices()
+                
+                if not target_indices:
+                    raise ValueError("No target indices found in the CSV file")
+                
+                # Get auth file path (convert WindowsPath to string)
+                auth_file = str(self.file_manager.input_files.auth_file)
+
+                print(f"Initializing TifDownloader with parameters:")
+                print(f"  config: {self.config}")
+                print(f"  auth_file: {auth_file}")
+                print(f"  target_indices: {target_indices}")
+                print("--------------------------------")
+
+                # Update status and log
+                self.update_status(f"Initializing export for {source_type} imagery...")
+                self.update_log(f"Starting export process for {source_type}")
+                self.update_log(f"Date range: {start_date} to {end_date}")
+                self.update_log(f"Target folder: {folder_name}")
+                self.update_log(f"Number of indices: {len(target_indices)}")
+
+                # Create TifDownloader instance
+                from utils.tif_downloader import TifDownloader
+                downloader = TifDownloader(
+                    config=self.config,
+                    auth_file=auth_file,
+                    target_indices=target_indices,
+                    start_date=start_date,
+                    end_date=end_date,
+                    source_type=source_type
+                )
+
+                # Initialize Earth Engine
+                self.update_log("Initializing Earth Engine...")
+                downloader.initialize_ee()
+
+                # Start export in a separate thread
+                import threading
+                def export_thread():
+                    try:
+                        downloader.start_export(
+                            start_date=start_date,
+                            end_date=end_date,
+                            source_type=source_type,
+                            folder_name=folder_name
+                        )
+                        self.update_status("Export completed successfully")
+                        self.update_log("Export process has been completed successfully!")
+                    except Exception as e:
+                        self.update_status("Export failed")
+                        self.update_log(f"Export failed: {str(e)}")
+                        self.show_error("Export Error", str(e))
+
+                thread = threading.Thread(target=export_thread)
+                thread.daemon = True
+                thread.start()
+
+            except Exception as e:
+                self.show_error("Export Error", f"Failed to start export: {str(e)}")
+                self.update_status("Export failed to start")
+                self.update_log(f"Failed to start export: {str(e)}")
+        else:
+            self.update_status("Export conditions not met")
+            self.update_log("Export conditions not met - please check all requirements")
+
+    # Add a new method to update the log
+    def update_log(self, message):
+        """Update the log text widget with a new message"""
+        self.log_text.config(state='normal')
+        self.log_text.insert(tk.END, f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
+        self.log_text.see(tk.END)  # Scroll to bottom
+        self.log_text.config(state='disabled')
 
     def run(self):
         self.root.mainloop()

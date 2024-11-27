@@ -9,13 +9,13 @@ from typing import List, Tuple
 import ee
 from pathlib import Path
 import pandas as pd
-from auth_validator import get_credentials
+from utils.auth_validator import get_credentials
 
 
 class TifDownloader:
     """Main class for downloading TIF files from Google Earth Engine"""
     
-    def __init__(self, config, auth_file, target_indices):
+    def __init__(self, config, auth_file, target_indices, start_date, end_date, source_type):
         """
         Initialize TIF downloader
         Args:
@@ -26,18 +26,30 @@ class TifDownloader:
         self.config = config
         self.auth_file = Path(auth_file)
         self.target_indices = target_indices
-        self.task_count = 0
+        self.task_count = 0  # only used for current batch
         self.all_task_count = 0
-        self.current_task_index = 0
+        self.current_task_index = 0 # for all the total at end 
         self.pending_tasks = []
         self.MAX_CONCURRENT_TASKS = 2000
         self.TASK_CHECK_INTERVAL = 600  # 10 minutes in seconds
+        self.start_date = start_date
+        self.end_date = end_date
+        self.source_type = source_type
         
         # Validate inputs
         if not self.auth_file.exists():
             raise FileNotFoundError(f"Auth file not found: {self.auth_file}")
         if not self.target_indices:
             raise ValueError("No target indices provided")
+        
+        self.all_task_count = self.calculate_total_tasks()
+
+
+    def calculate_total_tasks(self):
+        """Calculate total tasks based on date ranges and target indices"""
+        date_ranges = self.get_date_ranges(self.start_date, self.end_date, self.source_type)
+
+        return len(date_ranges) * len(self.target_indices)
 
     def initialize_ee(self):
         """Initialize Earth Engine with credentials"""
@@ -102,8 +114,7 @@ class TifDownloader:
             ee.ImageCollection: Filtered image collection
         """
         start_date, end_date = date_range
-        collection_id = (self.config.get_nicfi_project() if source_type.lower() == 'nicfi' 
-                        else self.config.get_sentinel_project())
+        collection_id = self.config.get_project_path(source_type)
         
         return (ee.ImageCollection(collection_id)
                 .filterDate(start_date, end_date)
@@ -242,91 +253,17 @@ Export Process Summary:
 - Total Batches: {batch_count}
 - Total Date Ranges: {len(date_ranges)}
 - Total Indices: {len(self.target_indices)}
-- Total Tasks Created: {batch_count * self.MAX_CONCURRENT_TASKS + self.task_count}
+- Total Tasks Created: {self.current_task_index}
             """)
 
         except Exception as e:
             print(f"Error during export process: {str(e)}")
             raise
 
-def test():
-    """Test the TifDownloader class with simulated tasks - NICFI only"""
-    
-    # Test configuration
-    class TestConfig:
-        def get_nicfi_project(self):
-            return 'projects/planet-nicfi/assets/basemaps/americas'
-            
-        def get_sentinel_project(self):
-            return 'COPERNICUS/S2_SR_HARMONIZED'
-            
-        def get_shared_assets_id(self):
-            return 'projects/ee-qinheyi/assets/1823_ADRSM'
-    
-    # Test parameters
-    auth_file = "stone-armor-430205-e2-2cd696d4afcd.json"  # Your auth file
-    test_indices = list(range(1, 1001))  # Test with 1000 indices
-    start_date = "2022-01-01"
-    end_date = "2024-01-01"  # 2-year range
-    
-    print("\n=== TIF Downloader NICFI Test ===")
-    print(f"Time Range: {start_date} to {end_date}")
-    print(f"Number of indices: {len(test_indices)}")
-    
-    try:
-        # Initialize downloader
-        print("\n1. Initializing TIF Downloader...")
-        downloader = TifDownloader(TestConfig(), auth_file, test_indices)
-        
-        # Initialize Earth Engine
-        print("\n2. Initializing Earth Engine...")
-        downloader.initialize_ee()
-        
-        # Test NICFI date range generation
-        print("\n3. Testing NICFI date range generation...")
-        nicfi_ranges = downloader.get_date_ranges(start_date, end_date, "nicfi")
-        print(f"Generated {len(nicfi_ranges)} NICFI date ranges")
-        print("Sample ranges:")
-        for i, date_range in enumerate(nicfi_ranges[:3]):
-            print(f"  Range {i+1}: {date_range[0]} to {date_range[1]}")
-        if len(nicfi_ranges) > 3:
-            print(f"  ... and {len(nicfi_ranges)-3} more ranges")
-
-        # Waiting 10 seconds before continue
-        time.sleep(3)
-            
-        # Calculate total NICFI tasks
-        nicfi_total_tasks = len(nicfi_ranges) * len(test_indices)
-        print(f"\nTotal NICFI tasks that would be created: {nicfi_total_tasks}")
-        downloader.all_task_count = nicfi_total_tasks
-        # Waiting 10 seconds before continue
-        time.sleep(3)
-
-        # Test task creation simulation
-        print("\n4. Testing NICFI export simulation...")
-        downloader.start_export(
-            start_date=start_date,
-            end_date=end_date,
-            source_type="nicfi",
-            folder_name="dev_test"
-        )
-        
-        print("\n=== Test Summary ===")
-        print(f"NICFI Tasks: {nicfi_total_tasks}")
-        print(f"Maximum concurrent tasks limit: {downloader.MAX_CONCURRENT_TASKS}")
-        print(f"Task check interval: {downloader.TASK_CHECK_INTERVAL} seconds")
-        
-    except Exception as e:
-        print(f"\nTest failed with error: {str(e)}")
-        raise
-    else:
-        print("\nTest completed successfully!")
-    finally:
-        print("\nTest execution finished.")
 
 def main():
     """Example usage of TifDownloader"""
-    test()
+    pass
 
 if __name__ == "__main__":
     main()
