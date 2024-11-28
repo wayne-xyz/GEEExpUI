@@ -16,6 +16,14 @@ A user-friendly desktop application for exporting high-resolution TIFF files fro
 - User-friendly Tkinter GUI
 - YAML-based configuration
 
+## Screenshot
+
+![Screenshot](https://github.com/wayne-xyz/GEEExpUI/blob/main/Screenshot.png)
+
+
+## Known Issues
+- Google Drive Shared folder issue: A folder shared with the service account email, then the folder is deleted and the folder still exists in the List of account available list, but can not be accessed and save the files to the folder.
+
 ## Requirements
 
 - Python 3.11
@@ -33,7 +41,7 @@ A user-friendly desktop application for exporting high-resolution TIFF files fro
    - Get the Asset ID of the shapefile and the Project ID of the Image collection (Step 2, Google Earth Engine Asset ID and Project ID as Yaml file)
    - Setup a index file of the target indices based on the Shapefile (Step 3, Target Indices as csv file)
    - Share the Google Drive's folder with the service account email (GCP project service account email in the json file)
-      - Google Drive Shared folder issue: A folder shared with the service account email, then the folder is deleted and the folder still exists in the List of account available list, but can not be accessed and save the files to the folder.
+
 
 
 2. Setup the Python Environment
