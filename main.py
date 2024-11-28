@@ -804,6 +804,7 @@ class Application:
                 self.update_log(f"Date range: {start_date} to {end_date}")
                 self.update_log(f"Target folder: {folder_name}")
                 self.update_log(f"Number of indices: {len(target_indices)}")
+                self.update_log(f"Source type: {source_type}")
 
                 # Create TifDownloader instance with clean folder name
                 from utils.tif_downloader import TifDownloader

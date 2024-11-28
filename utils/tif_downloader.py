@@ -10,7 +10,7 @@ import ee
 from pathlib import Path
 import pandas as pd
 from utils.auth_validator import get_credentials
-
+from utils.region_calculator import RegionCalculator
 
 class TifDownloader:
     """Main class for downloading TIF files from Google Earth Engine"""
@@ -36,6 +36,9 @@ class TifDownloader:
         self.end_date = end_date
         self.source_type = source_type
         self.log_callback = log_callback
+
+        self.region_calculator = RegionCalculator()
+
         # Validate inputs
         if not self.auth_file.exists():
             raise FileNotFoundError(f"Auth file not found: {self.auth_file}")
@@ -146,6 +149,10 @@ class TifDownloader:
             feature = (ee.FeatureCollection(self.config.get_shared_assets_id())
                       .filter(ee.Filter.eq('Index', index))
                       .first())
+            
+
+            export_region,export_size_ha = self.region_calculator.get_export_region(feature)
+            print(f"export_region size: {export_size_ha}")
 
             # Set export parameters based on source type
             scale = 5 if source_type.lower() == 'nicfi' else 10
@@ -157,7 +164,7 @@ class TifDownloader:
                 description=f"export_{index}_{date_str}",
                 folder=folder_name,
                 scale=scale,
-                region=feature.geometry().bounds(),
+                region=export_region,
                 crs='EPSG:4326',
                 maxPixels=1e13,
                 fileNamePrefix=f"{index}-{date_str}-{source_type}"
