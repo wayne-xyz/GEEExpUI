@@ -160,7 +160,7 @@ class TifDownloader:
 
             # Create export task
             task = ee.batch.Export.image.toDrive(
-                image=image.clip(feature.geometry()),
+                image=image.clip(export_region),
                 description=f"export_{index}_{date_str}",
                 folder=folder_name,
                 scale=scale,
@@ -171,7 +171,7 @@ class TifDownloader:
             )
 
             # Start the task
-            # task.start()
+            task.start()
             self.current_task_index += 1
 
 

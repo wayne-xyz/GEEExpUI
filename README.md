@@ -32,6 +32,9 @@ A user-friendly desktop application for exporting high-resolution TIFF files fro
    - Setup GEE Account and upload a shapefile as shared asset 
    - Get the Asset ID of the shapefile and the Project ID of the Image collection (Step 2, Google Earth Engine Asset ID and Project ID as Yaml file)
    - Setup a index file of the target indices based on the Shapefile (Step 3, Target Indices as csv file)
+   - Share the Google Drive's folder with the service account email (GCP project service account email in the json file)
+      - Google Drive Shared folder issue: A folder shared with the service account email, then the folder is deleted and the folder still exists in the List of account available list, but can not be accessed and save the files to the folder.
+
 
 2. Setup the Python Environment
    - Install the required Python packages

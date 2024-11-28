@@ -4,7 +4,7 @@ import os
 from google.oauth2 import service_account
 import ee
 
-SCOPES = ['https://www.googleapis.com/auth/drive.readonly', 'https://www.googleapis.com/auth/earthengine']
+SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/earthengine']
 
 
 def get_credentials(file_path):
@@ -41,7 +41,7 @@ def check_auth_file(file_path):
         from google.oauth2 import service_account
         from googleapiclient.discovery import build
         
-        SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+
         credentials = service_account.Credentials.from_service_account_file(
             file_path, scopes=SCOPES)
         
@@ -71,7 +71,7 @@ def return_all_folders_with_id(file_path):
         from googleapiclient.discovery import build
         
         # Get credentials from previously validated auth file
-        SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+
         credentials = service_account.Credentials.from_service_account_file(
             file_path, scopes=SCOPES)
         
