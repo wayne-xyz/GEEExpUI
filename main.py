@@ -449,6 +449,7 @@ class Application:
                 self.show_error("Error", f"Unexpected error during authentication: {str(e)}")
 
     def update_available_folders(self):
+        """Update available folders from Google Drive"""
         try:
             # Clear existing items
             self.folders_listbox.delete(0, tk.END)
@@ -468,8 +469,15 @@ class Application:
             
             # Load Drive folders
             self.available_folders = return_all_folders_with_id(auth_file_path)
-            for folder in self.available_folders:
-                self.folders_listbox.insert(tk.END, folder)
+            
+            # Store folder info as dictionary for easy lookup
+            self.folder_info = {}
+            for folder_with_id in self.available_folders:
+                # Split folder name and ID
+                folder_name = folder_with_id.split(" (")[0]
+                self.folder_info[folder_name] = folder_with_id
+                # Display only folder name in listbox
+                self.folders_listbox.insert(tk.END, folder_name)
             
             # Check folders
             if not self.available_folders:
@@ -758,10 +766,16 @@ class Application:
                 if not source_type:
                     raise ValueError("Could not determine source type")
 
-                # Get selected folder
+                # Get selected folder name only
                 folder_selection = self.folders_listbox.curselection()
-                folder_name = self.folders_listbox.get(folder_selection[0])
+                folder_name = self.folders_listbox.get(folder_selection[0])  # This now gets just the name
+                
+                # Get full folder info for logging (optional)
+                folder_with_id = self.folder_info.get(folder_name, folder_name)
 
+                # Update log with full folder information
+                self.update_log(f"Selected export folder: {folder_with_id}")
+                
                 # Get date range
                 start_date = self.start_date.get().strip()
                 end_date = self.end_date.get().strip()
@@ -791,7 +805,7 @@ class Application:
                 self.update_log(f"Target folder: {folder_name}")
                 self.update_log(f"Number of indices: {len(target_indices)}")
 
-                # Create TifDownloader instance
+                # Create TifDownloader instance with clean folder name
                 from utils.tif_downloader import TifDownloader
                 downloader = TifDownloader(
                     config=self.config,
