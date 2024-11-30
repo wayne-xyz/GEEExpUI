@@ -20,6 +20,7 @@ A user-friendly desktop application for exporting high-resolution TIFF files fro
 
 ![Screenshot](https://github.com/wayne-xyz/GEEExpUI/blob/main/Screenshot.png)
 
+![Youtube](https://youtu.be/_ddzpUMCEuw?si=r9cFgoJEDYVLAoxn)
 
 ## Known Issues
 - Google Drive Shared folder issue: A folder shared with the service account email, then the folder is deleted and the folder still exists in the List of account available list, but can not be accessed and save the files to the folder.
