@@ -191,13 +191,18 @@ class TifDownloader:
             tasks = ee.batch.Task.list()
             active_tasks = [task for task in tasks if task.state in ['READY', 'RUNNING']]
             print(f"\nCurrent active GEE tasks: {len(active_tasks)}")
-            return len(active_tasks) < self.MAX_CONCURRENT_TASKS
+            return len(active_tasks) == 0  # there is no active task and no running task 
         except Exception as e:
             print(f"Error checking GEE task list: {str(e)}")
             return False
+        
 
     def monitor_tasks(self):
         """Monitor GEE tasks and wait until task list is clear"""
+        # Explain how this function works
+        # Check if GEE task list is clear
+        # If not, wait for 10 minutes and check again   
+        # Repeat until GEE task list is clear
         while not self.is_ee_task_list_clear():
             self.log_message(f"\nWaiting {self.TASK_CHECK_INTERVAL/60:.1f} minutes before checking GEE task status...")
             time.sleep(self.TASK_CHECK_INTERVAL)
@@ -220,6 +225,16 @@ GEE Task Status:
 
     def start_export(self, start_date: str, end_date: str, source_type: str, folder_name: str):
         """Start the export process with batch task submission"""
+
+        # How it works:
+        # First Check if task list is clear
+        # Get all date ranges to process
+        # Get image collection for each date range
+        # Get feature from shared asset
+        # Create export task for each image collection
+        # Monitor GEE tasks and wait until task list is clear
+        # Repeat until all date ranges are processed
+
         print(f"""
 Starting Export Process:
 - Source Type: {source_type}
@@ -227,6 +242,10 @@ Starting Export Process:
 - Target Indices: {len(self.target_indices)}
 - Save Folder: {folder_name}
     """)
+
+
+        # First Check if task list is clear
+        self.monitor_tasks()
 
         try:
             # Get all date ranges to process
