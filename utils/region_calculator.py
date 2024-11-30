@@ -3,6 +3,15 @@ Region calculator for GEE export tasks
 Implements specific size-based rules for different feature areas
 """
 
+# Description of the region calculator, and the rule of the region size
+# <1 ha: 4 ha
+# 1-4 ha: 10 ha
+# 4-10 ha: 5x ha    
+# >10 ha: use the bounds of the region
+
+
+
+
 import ee
 from typing import Dict, Any, Tuple
 
@@ -14,9 +23,9 @@ class RegionCalculator:
         self.MEDIUM_AREA_THRESHOLD = 10  # 4-10 ha
         
         # Define export sizes in square meters
-        self.TINY_EXPORT_SIZE = 3 * 10000    # 3 ha for tiny areas
-        self.SMALL_EXPORT_SIZE = 5 * 10000   # 5 ha for small areas
-        self.MEDIUM_MULTIPLIER = 3           # 3x area for medium areas
+        self.TINY_EXPORT_SIZE = 4 * 10000    # 4 ha for tiny areas
+        self.SMALL_EXPORT_SIZE = 10 * 10000   # 10 ha for small areas
+        self.MEDIUM_MULTIPLIER = 5           # 5x area for medium areas
         
         # Define scale settings for different sources
         self.SCALE_SETTINGS = {
