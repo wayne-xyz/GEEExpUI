@@ -77,7 +77,12 @@ class RegionCalculator:
         return export_region, shape_size
 
     def format_date_string(self, date_str: str, source_type: str) -> str:
-        """Format date string based on source type"""
+        """
+        Format date string based on source type
+        Examples:
+            - nicfi: '2020-01-01' -> '2020-01'
+            - sentinel: '2020-01-01' -> '20200101'
+        """
         if source_type.lower() == 'nicfi':
             return date_str[:7]
         return date_str[:4] + date_str[5:7] + date_str[8:]

@@ -156,8 +156,8 @@ class TifDownloader:
 
             # Set export parameters based on source type
             scale = 5 if source_type.lower() == 'nicfi' else 10
+            # '2023-01' for NICFI or '20230101' for Sentinel
             date_str = start_date[:7] if source_type.lower() == 'nicfi' else start_date.replace('-', '')
-
             # Create export task
             task = ee.batch.Export.image.toDrive(
                 image=image.clip(export_region),
