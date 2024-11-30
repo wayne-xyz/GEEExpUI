@@ -15,6 +15,7 @@ A user-friendly desktop application for exporting high-resolution TIFF files fro
 - Task management with progress monitoring
 - User-friendly Tkinter GUI
 - YAML-based configuration
+- Support awaiting task completion check due to the GEE task limit (2000 tasks)
 
 ## Screenshot
 
