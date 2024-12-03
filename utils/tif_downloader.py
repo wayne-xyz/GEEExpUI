@@ -204,6 +204,8 @@ class TifDownloader:
         # If not, wait for 10 minutes and check again   
         # Repeat until GEE task list is clear
         while not self.is_ee_task_list_clear():
+            # print the time now 
+            print(f"\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             self.log_message(f"\nWaiting {self.TASK_CHECK_INTERVAL/60:.1f} minutes before checking GEE task status...")
             time.sleep(self.TASK_CHECK_INTERVAL)
             
